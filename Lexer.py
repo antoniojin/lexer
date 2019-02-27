@@ -12,11 +12,27 @@ TESTS =  [fich for fich in FICHEROS
 TESTS.sort()
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER, ELSE, STR_CONST}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
 
-    ELSE =r'[eE][lL][sS][eE]'
+    ELSE =r'[eE][lL][sS][eE]\b'
+    CASE =r'[cC][aA][sS][eE]\b'
+    CLASS =r'[cC][lL][aA][sS][sS]\b'
+    ESAC =r'[eE][sS][aA][cC]\b'
+    FI =r'[fF][iI]\b'
+    IF =r'[iI][fF]\b'
+    IN =r'[iI][nN]\b'
+    INHERITS = r'[iI][nN][hH][eE][rR][iI][tT][sS]\b'
+    ISVOID = r'[iI][sS][vV][oO][iI][dD]\b'
+    LET = r'[lL][eE][tT]\b'
+    LOOP = r'[lL][oO][oO][pP]\b'
+    NEW = r'[nN][eE][wW]\b'
+    NOT = r'[nN][oO][tT]\b'
+    OF = r'[oO][fF]\b'
+    POOL = r'[pP][oO][oO][lL]\b'
+    THEN = r'[tT][hH][eE][nN]\b'
+    WHILE = r'[wW][hH][iI][lL][eE]\b'
 
     @_(r'".*"')
     def STR_CONST(self, t):
@@ -24,14 +40,21 @@ class CoolLexer(Lexer):
         t.value = r.sub(r'\1', t.value)
         return t
     
-    @_(r'\d+')
-    def NUMBER(self, t):
-        t.value = int(t.value)
+    @_(r'[!#$%^&_>\?`\[\]\\\|]')
+    def ERROR(self,t):
         return t
 
-    @_(r't[rR][uU][eE]')
+
+    @_(r'\d+')
+    def INT_CONST(self, t):
+        return t
+
+    @_(r'(t[rR][uU][eE]|f[aA][lL][sS][eE])')
     def BOOL_CONST(self, t):
-        t.value = True
+        if t.value[0] == "t":
+            t.value = True
+        else:
+            t.value = False
         return t
     
     @_(r'[A-Z][a-zA-Z0-9]*')
@@ -67,6 +90,10 @@ class CoolLexer(Lexer):
                 result += f"{str(token.value)}"
             elif token.type == 'STR_CONST':
                 result += f"{str(token.value)}"
+            elif token.type == 'ERROR':
+                result += f"{str(token.value)}"
+            elif token.type == 'INT_CONST':
+                result += f"{str(token.value)}"
             else:
                 result = f'#{token.lineno} {token.type}'
             
@@ -94,7 +121,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "backslash.cool"
+    fich = "escapedquote.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))

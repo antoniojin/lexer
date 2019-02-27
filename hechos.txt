@@ -1,0 +1,16 @@
+1.keywords.cool
+2.all_else_true.cl.cool
+3.validcharacters.cool
+4.invalidcharacters.cool
+5.intergers2.cool
+6.
+7.
+8.
+9.
+10.
+11.
+12.
+13.
+14.
+15.
+16.
