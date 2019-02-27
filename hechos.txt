@@ -4,7 +4,7 @@
 4.invalidcharacters.cool
 5.intergers2.cool
 6.badidentifiers.cool
-7.
+7.badkeywords.cool
 8.
 9.
 10.

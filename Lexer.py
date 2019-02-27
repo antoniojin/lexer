@@ -49,7 +49,7 @@ class CoolLexer(Lexer):
     def INT_CONST(self, t):
         return t
 
-    @_(r'(t[rR][uU][eE]|f[aA][lL][sS][eE])')
+    @_(r'(t[rR][uU][eE]\b|f[aA][lL][sS][eE]\b)')
     def BOOL_CONST(self, t):
         if t.value[0] == "t":
             t.value = True
@@ -121,7 +121,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "escapedquote.cool"
+    fich = "badkeywords.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
