@@ -3,7 +3,7 @@
 3.validcharacters.cool
 4.invalidcharacters.cool
 5.intergers2.cool
-6.
+6.badidentifiers.cool
 7.
 8.
 9.
