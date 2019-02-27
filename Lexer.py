@@ -121,7 +121,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "badkeywords.cool"
+    fich = "integers2.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
