@@ -8,9 +8,9 @@
 8.backslash.cool
 9.backslash2.cool
 10.operators.cool
-11.s34.test.cool
-12.
-13.
+11.escapedunprintables.cool
+12.comment_in_string.cl.cool
+13.simplestrings.cool
 14.
 15.
 16.

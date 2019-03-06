@@ -12,9 +12,10 @@ TESTS =  [fich for fich in FICHEROS
 TESTS.sort()
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
+    asci = {'','','','','',''}
 
     ELSE =r'[eE][lL][sS][eE]\b'
     CASE =r'[cC][aA][sS][eE]\b'
@@ -42,8 +43,13 @@ class CoolLexer(Lexer):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
         t.value = t.value.replace('\\\n',r'\n')
+        t.value = t.value.replace('\\\t',r'\t')
+        t.value = t.value.replace('\\\b',r'\b')
+        t.value = t.value.replace('\\\f',r'\f')
+        t.value = t.value.replace('\t',r'\t')
+        #for e in asci:
+        #    t.value = t.value.replace(e,ord(e))
         r = re.compile(r'(?<!\\)\\([^nftb"\\])')
-
         t.value = r.sub(r'\1', t.value)
         return t
 
@@ -66,7 +72,6 @@ class CoolLexer(Lexer):
             t.value = "\\\\"
         t.value = '"'+t.value+'"'
         return t
-
 
     @_(r'\d+')
     def INT_CONST(self, t):
@@ -146,7 +151,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "backslash2.cool"
+    fich = "stringcomment.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
