@@ -12,7 +12,7 @@ TESTS =  [fich for fich in FICHEROS
 TESTS.sort()
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER,ERROR1, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
 
@@ -34,14 +34,30 @@ class CoolLexer(Lexer):
     THEN = r'[tT][hH][eE][nN]\b'
     WHILE = r'[wW][hH][iI][lL][eE]\b'
 
-    @_(r'".*"')
+    @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|.)))*"')
     def STR_CONST(self, t):
-        r = re.compile(r'\\([^nftb\\"])')
+        self.lineno += t.value.count('\n')
+        t.lineno = self.lineno
+        t.value = t.value.replace('\\\n',r'\n')
+        r = re.compile(r'(?<!\\)\\([^nftb"\\])')
+
         t.value = r.sub(r'\1', t.value)
+        return t
+
+    @_(r'"[^"\n]*\n')
+    def ERROR1(self,t):
+        self.lineno += t.value.count('\n')
+        t.lineno = self.lineno
+        t.type = "ERROR"
+        t.value = '"Undeterminated string constant"'
         return t
     
     @_(r'[!#$%^&_>\?`\[\]\\\|]')
     def ERROR(self,t):
+        t.type = "ERROR"
+        if t.value == "\\":
+            t.value = "\\\\"
+        t.value = '"'+t.value+'"'
         return t
 
 
@@ -77,6 +93,8 @@ class CoolLexer(Lexer):
     def error(self, t):
         print("Illegal character '%s'" % t.value[0])
         self.index += 1
+   
+
 
     def salida(self, texto):
         list_strings = []
@@ -121,7 +139,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "integers2.cool"
+    fich = "invalidcharacters.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))

@@ -5,8 +5,8 @@
 5.intergers2.cool
 6.badidentifiers.cool
 7.badkeywords.cool
-8.
-9.
+8.backslash.cool
+9.backslash2.cool
 10.
 11.
 12.
