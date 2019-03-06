@@ -12,7 +12,7 @@ TESTS =  [fich for fich in FICHEROS
 TESTS.sort()
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER,ERROR1, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST, TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
 
@@ -33,6 +33,9 @@ class CoolLexer(Lexer):
     POOL = r'[pP][oO][oO][lL]\b'
     THEN = r'[tT][hH][eE][nN]\b'
     WHILE = r'[wW][hH][iI][lL][eE]\b'
+    ASSIGN = r'<-'
+    DARROW = r'=>'
+    LE = r'<='
 
     @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|.)))*"')
     def STR_CONST(self, t):
@@ -44,14 +47,18 @@ class CoolLexer(Lexer):
         t.value = r.sub(r'\1', t.value)
         return t
 
-    @_(r'"[^"\n]*\n')
+    @_(r'"[^"]*\n')
     def ERROR1(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
         t.type = "ERROR"
         t.value = '"Undeterminated string constant"'
         return t
-    
+
+    @_(r'\(\*.*\*\)')
+    def COMENT(self,t):
+        pass
+
     @_(r'[!#$%^&_>\?`\[\]\\\|]')
     def ERROR(self,t):
         t.type = "ERROR"
@@ -139,7 +146,7 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "invalidcharacters.cool"
+    fich = "backslash2.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
