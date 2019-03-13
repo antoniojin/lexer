@@ -35,8 +35,11 @@ class comen(Lexer):
     def COMMEN(self,t):
         pass
 
+    def salida(self, t):
+        return []
+
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,LINECOMMENT, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
     asci = {'','','','','',''}
@@ -77,12 +80,12 @@ class CoolLexer(Lexer):
         t.value = r.sub(r'\1', t.value)
         return t
 
-    @_(r'"[^"]*\n')
+    @_(r'"[^"\n]*\n')
     def ERROR1(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
         t.type = "ERROR"
-        t.value = '"Undeterminated string constant"'
+        t.value = '"Unterminated string constant"'
         return t
 
     @_(r'\(\*')
@@ -91,6 +94,7 @@ class CoolLexer(Lexer):
 
     @_(r'--.*')
     def LINECOMMENT(self, t):
+        self.lineno+=t.value.count('\n')
         pass
 
     @_(r'[!#$%^&_>\?`\[\]\\\|]')
@@ -99,6 +103,12 @@ class CoolLexer(Lexer):
         if t.value == "\\":
             t.value = "\\\\"
         t.value = '"'+t.value+'"'
+        return t
+
+    @_(r'\*\)')
+    def ERROR2(self,t):
+        t.type = "ERROR"
+        t.value = '"Unmatched *)"'
         return t
 
     @_(r'\d+')
@@ -113,7 +123,7 @@ class CoolLexer(Lexer):
             t.value = False
         return t
     
-    @_(r'[A-Z][a-zA-Z0-9]*')
+    @_(r'[A-Z][a-zA-Z0-9_]*')
     def TYPEID(self, t):
         t.value =str(t.value)
         return t
@@ -150,6 +160,8 @@ class CoolLexer(Lexer):
                 result += f"{str(token.value)}"
             elif token.type == 'ERROR':
                 result += f"{str(token.value)}"
+            elif token.type in self.literals:
+                result = f'#{token.lineno} \'{token.type}\' '
             elif token.type == 'INT_CONST':
                 result += f"{str(token.value)}"
             else:
@@ -166,7 +178,7 @@ class CoolLexer(Lexer):
             texto = '\n'.join(self.salida(entrada))
             texto = f'#name "{fich}"\n' + texto
             f.close(), g.close()
-            if texto.strip() != resultado.strip():
+            if texto.strip().split() != resultado.strip().split():
                 #print("Primero:\n")
                 #print(texto[:i])
                 #print("Segundo:\n")
@@ -177,8 +189,8 @@ lexer = CoolLexer()
                 
 if __name__ == '__main__':
     lexer = CoolLexer()
-    #lexer.tests()
-    fich = "twice_512_nested_comments.cl.cool"
+    lexer.tests()
+    fich = "weirdcharcomment.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
