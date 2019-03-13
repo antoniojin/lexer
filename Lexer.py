@@ -11,8 +11,32 @@ TESTS =  [fich for fich in FICHEROS
           if os.path.isfile(os.path.join(DIR, fich)) and fich.endswith(".cool")]
 TESTS.sort()
 
+class comen(Lexer):
+
+    tokens = {INSIDE, OUTSIDE, COMMEN}
+    profundidad = 1
+    
+    @_(r'\n+')
+    def newline(self, t):
+        self.lineno += t.value.count('\n')
+    
+    @_(r'\*\)')
+    def INSIDE(self, t):
+        self.profundidad -= 1
+        if not self.profundidad:
+            self.profundidad = 1
+            self.begin(CoolLexer)
+
+    @_(r'\(\*')
+    def OUTSIDE(self,t):
+        self.profundidad += 1
+
+    @_(r'.')
+    def COMMEN(self,t):
+        pass
+
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,LINECOMMENT, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
     asci = {'','','','','',''}
@@ -61,8 +85,12 @@ class CoolLexer(Lexer):
         t.value = '"Undeterminated string constant"'
         return t
 
-    @_(r'\(\*.*\*\)')
+    @_(r'\(\*')
     def COMENT(self,t):
+        self.begin(comen)
+
+    @_(r'--.*')
+    def LINECOMMENT(self, t):
         pass
 
     @_(r'[!#$%^&_>\?`\[\]\\\|]')
@@ -93,14 +121,14 @@ class CoolLexer(Lexer):
     @_(r'[a-z_][a-zA-Z0-9_]*')
     def OBJECTID(self,t):
         return t
+
+    @_(r'\n+')
+    def newline(self, t):
+        self.lineno += t.value.count('\n')
     
     @_(r'\t| ')
     def spaces(self, t):
         pass
-    
-    @_(r'\n+')
-    def newline(self, t):
-        self.lineno += t.value.count('\n')
 
     def error(self, t):
         print("Illegal character '%s'" % t.value[0])
@@ -144,14 +172,13 @@ class CoolLexer(Lexer):
                 #print("Segundo:\n")
                 #print(resultado[:i])
                 print(f"Revisa el fichero {fich}")
-            
 
 lexer = CoolLexer()
                 
 if __name__ == '__main__':
     lexer = CoolLexer()
     #lexer.tests()
-    fich = "stringcomment.cool"
+    fich = "twice_512_nested_comments.cl.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
