@@ -4,7 +4,8 @@ from sly import Lexer
 import os
 import re
 
-PRACTICA = os.path.join("C:/Users/anton/Desktop/LenguajesProgramacion/practica1/")
+#PRACTICA = os.path.join("C:/Users/anton/Desktop/LenguajesProgramacion/practica1/")
+PRACTICA = os.path.join("C:/Users/USUARIO/Desktop/archivos")
 DIR = os.path.join(PRACTICA, "grading")
 FICHEROS = os.listdir(DIR)
 TESTS =  [fich for fich in FICHEROS
@@ -188,8 +189,17 @@ class CoolLexer(Lexer):
 lexer = CoolLexer()
                 
 if __name__ == '__main__':
-    lexer = CoolLexer()
-    lexer.tests()
+    for fich in TESTS:
+            lexer = CoolLexer()
+            f = open(os.path.join(DIR,fich),'r')
+            g = open(os.path.join(DIR,fich+ '.out'),'r')
+            resultado = g.read()
+            entrada =  f.read()
+            texto = '\n'.join(lexer.salida(entrada))
+            texto = f'#name "{fich}"\n' + texto
+            f.close(), g.close()
+            if texto.strip().split() != resultado.strip().split():
+                print(f"Revisa el fichero {fich}")
     fich = "weirdcharcomment.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
