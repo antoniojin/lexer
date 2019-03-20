@@ -5,7 +5,7 @@ import os
 import re
 
 #PRACTICA = os.path.join("C:/Users/anton/Desktop/LenguajesProgramacion/practica1/")
-PRACTICA = os.path.join("C:/Users/USUARIO/Desktop/archivos")
+PRACTICA = os.path.join("C:/Users/USUARIO/lexer")
 DIR = os.path.join(PRACTICA, "grading")
 FICHEROS = os.listdir(DIR)
 TESTS =  [fich for fich in FICHEROS
@@ -65,7 +65,10 @@ class CoolLexer(Lexer):
     ASSIGN = r'<-'
     DARROW = r'=>'
     LE = r'<='
-
+    CARACTERES_CONTROL = [bytes.fromhex(i+hex(j)[-1]).decode('ascii')
+                        for i in ['0','1']
+                        for j in range(16)]
+    CARACTERES_CONTROL += [bytes.fromhex(hex(127)[-2:]).decode("ascii")]
     @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|.)))*"')
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
@@ -75,10 +78,15 @@ class CoolLexer(Lexer):
         t.value = t.value.replace('\\\b',r'\b')
         t.value = t.value.replace('\\\f',r'\f')
         t.value = t.value.replace('\t',r'\t')
-        #for e in asci:
-        #    t.value = t.value.replace(e,ord(e))
         r = re.compile(r'(?<!\\)\\([^nftb"\\])')
         t.value = r.sub(r'\1', t.value)
+        lista = []
+        for w in t.value:
+            if w in self.CARACTERES_CONTROL:
+                lista.append(str(oct(int(w.encode("ascii").hex(),16))).replace('o','0')[-3:])
+            else:
+                lista.append(w)
+        t.value=lista
         return t
 
     @_(r'"[^"\n]*\n')
@@ -200,7 +208,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "weirdcharcomment.cool"
+    fich = "invalidinvisible.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
