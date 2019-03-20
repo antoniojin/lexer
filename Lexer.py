@@ -40,7 +40,7 @@ class comen(Lexer):
         return []
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ERROR3,ERROR4,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
     asci = {'','','','','',''}
@@ -69,24 +69,36 @@ class CoolLexer(Lexer):
                         for i in ['0','1']
                         for j in range(16)]
     CARACTERES_CONTROL += [bytes.fromhex(hex(127)[-2:]).decode("ascii")]
-    @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|.)))*"')
+    @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|[^\x00])))*"')
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
+        if len(t.value) > 2050:
+            t.type = "ERROR"
+            t.value = '"String constant too long"'
+            return t
         t.value = t.value.replace('\\\n',r'\n')
         t.value = t.value.replace('\\\t',r'\t')
         t.value = t.value.replace('\\\b',r'\b')
         t.value = t.value.replace('\\\f',r'\f')
         t.value = t.value.replace('\t',r'\t')
+        t.value = t.value.replace('\f',r'\f')
         r = re.compile(r'(?<!\\)\\([^nftb"\\])')
         t.value = r.sub(r'\1', t.value)
         lista = []
         for w in t.value:
             if w in self.CARACTERES_CONTROL:
-                lista.append(str(oct(int(w.encode("ascii").hex(),16))).replace('o','0')[-3:])
+                lista.append('\\'+str(oct(int(w.encode("ascii").hex(),16))).replace('o','0')[-3:])
             else:
                 lista.append(w)
-        t.value=lista
+        t.value=''.join(lista)
+        return t
+    @_(r'"[^"]*\Z')
+    def ERROR4(self,t):
+        self.lineno += t.value.count('\n')
+        t.lineno = self.lineno
+        t.type = "ERROR"
+        t.value = '"EOF in string constant"'
         return t
 
     @_(r'"[^"\n]*\n')
@@ -106,11 +118,13 @@ class CoolLexer(Lexer):
         self.lineno+=t.value.count('\n')
         pass
 
-    @_(r'[!#$%^&_>\?`\[\]\\\|]')
+    @_(r'[!#$%^&_>\?`\[\]\\\|]')
     def ERROR(self,t):
         t.type = "ERROR"
         if t.value == "\\":
             t.value = "\\\\"
+        if t.value in self.CARACTERES_CONTROL:
+            t.value = '\\'+str(oct(int(t.value.encode("ascii").hex(),16))).replace('o','0')[-3:]
         t.value = '"'+t.value+'"'
         return t
 
@@ -208,7 +222,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "invalidinvisible.cool"
+    fich = "wq0607-c3.cool"
     f = open(os.path.join(DIR,fich),'r')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
