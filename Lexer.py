@@ -14,20 +14,28 @@ TESTS.sort()
 
 class comen(Lexer):
 
-    tokens = {INSIDE, OUTSIDE, COMMEN}
+    tokens = {INSIDE, OUTSIDE, COMMEN,ERROR}
     profundidad = 1
     
     @_(r'\n+')
     def newline(self, t):
         self.lineno += t.value.count('\n')
-    
+    @_(r'\*\)\Z')
+    def ERROR(self, t):
+        self.profundidad -= 1
+        if not self.profundidad:
+            self.profundidad = 1
+            self.begin(CoolLexer)
+        else:
+            t.type = "ERROR"
+            t.value = '"EOF in comment"'
+            return t
     @_(r'\*\)')
     def INSIDE(self, t):
         self.profundidad -= 1
         if not self.profundidad:
             self.profundidad = 1
             self.begin(CoolLexer)
-
     @_(r'\(\*')
     def OUTSIDE(self,t):
         self.profundidad += 1
@@ -40,7 +48,7 @@ class comen(Lexer):
         return []
 
 class CoolLexer(Lexer):
-    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ERROR3,ERROR4,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
+    tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ERROR3,ERROR4,ERROR5,ERROR6,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
     #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
     asci = {'','','','','',''}
@@ -69,11 +77,11 @@ class CoolLexer(Lexer):
                         for i in ['0','1']
                         for j in range(16)]
     CARACTERES_CONTROL += [bytes.fromhex(hex(127)[-2:]).decode("ascii")]
-    @_(r'"([^"\n\\]|([^\\]?(\\\\)*\\(\n|[^\x00])))*"')
+    @_(r'"([^"\n\\\x00]|([^\\]?(\\\\)*\\(\n|[^\x00])))*"')
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
-        if len(t.value) > 2050:
+        if len(t.value) > 1024:
             t.type = "ERROR"
             t.value = '"String constant too long"'
             return t
@@ -92,16 +100,22 @@ class CoolLexer(Lexer):
             else:
                 lista.append(w)
         t.value=''.join(lista)
-        return t
-    @_(r'"[^"]*\Z')
-    def ERROR4(self,t):
+        return t    
+    @_(r'"([^"\n\x00]*\\\x00[^"\n\x00]*)+"?')
+    def ERROR6(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
         t.type = "ERROR"
-        t.value = '"EOF in string constant"'
+        t.value = '"String contains escaped null character."'
         return t
-
-    @_(r'"[^"\n]*\n')
+    @_(r'"([^"\n\x00]*\x00[^"\n\x00]*)+"?')
+    def ERROR5(self,t):
+        self.lineno += t.value.count('\n')
+        t.lineno = self.lineno
+        t.type = "ERROR"
+        t.value = '"String contains null character."'
+        return t
+    @_(r'"[^"\n\x00]*\n')
     def ERROR1(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
@@ -109,6 +123,13 @@ class CoolLexer(Lexer):
         t.value = '"Unterminated string constant"'
         return t
 
+    @_(r'"[^"\x00]*\Z')
+    def ERROR4(self,t):
+        self.lineno += t.value.count('\n')
+        t.lineno = self.lineno
+        t.type = "ERROR"
+        t.value = '"EOF in string constant"'
+        return t
     @_(r'\(\*')
     def COMENT(self,t):
         self.begin(comen)
@@ -118,7 +139,7 @@ class CoolLexer(Lexer):
         self.lineno+=t.value.count('\n')
         pass
 
-    @_(r'[!#$%^&_>\?`\[\]\\\|]')
+    @_(r'[!#$%^&_>\?`\[\]\\\|\x00]')
     def ERROR(self,t):
         t.type = "ERROR"
         if t.value == "\\":
@@ -213,8 +234,8 @@ lexer = CoolLexer()
 if __name__ == '__main__':
     for fich in TESTS:
             lexer = CoolLexer()
-            f = open(os.path.join(DIR,fich),'r')
-            g = open(os.path.join(DIR,fich+ '.out'),'r')
+            f = open(os.path.join(DIR,fich),'r',newline='')
+            g = open(os.path.join(DIR,fich+ '.out'),'r',newline='')
             resultado = g.read()
             entrada =  f.read()
             texto = '\n'.join(lexer.salida(entrada))
@@ -222,7 +243,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "wq0607-c3.cool"
-    f = open(os.path.join(DIR,fich),'r')
+    fich = "s19.test.cool"
+    f = open(os.path.join(DIR,fich),'r',newline='')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
