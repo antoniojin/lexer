@@ -3,7 +3,7 @@
 from sly import Lexer
 import os
 import re
-
+import ast
 #PRACTICA = os.path.join("C:/Users/anton/Desktop/LenguajesProgramacion/practica1/")
 PRACTICA = os.path.join("C:/Users/USUARIO/lexer")
 DIR = os.path.join(PRACTICA, "grading")
@@ -81,11 +81,8 @@ class CoolLexer(Lexer):
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
-        if len(t.value) > 1024:
-            t.type = "ERROR"
-            t.value = '"String constant too long"'
-            return t
         t.value = t.value.replace('\\\n',r'\n')
+        t.value = t.value.replace(r'\\\\',r'\\')
         t.value = t.value.replace('\\\t',r'\t')
         t.value = t.value.replace('\\\b',r'\b')
         t.value = t.value.replace('\\\f',r'\f')
@@ -93,6 +90,10 @@ class CoolLexer(Lexer):
         t.value = t.value.replace('\f',r'\f')
         r = re.compile(r'(?<!\\)\\([^nftb"\\])')
         t.value = r.sub(r'\1', t.value)
+        if len(t.value) > 1026:
+            t.type = "ERROR"
+            t.value = '"String constant too long"'
+            return t
         lista = []
         for w in t.value:
             if w in self.CARACTERES_CONTROL:
@@ -243,7 +244,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "s19.test.cool"
+    fich = "escapedeof.cool"
     f = open(os.path.join(DIR,fich),'r',newline='')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
