@@ -16,14 +16,15 @@ class comen(Lexer):
 
     tokens = {INSIDE, OUTSIDE, COMMEN,ERROR}
     profundidad = 1
-    
+    def salida(self, t):
+        return []
     @_(r'\n+')
     def newline(self, t):
         self.lineno += t.value.count('\n')
-    @_(r'\*\)\Z')
+    @_(r'\*\)?\Z')
     def ERROR(self, t):
         self.profundidad -= 1
-        if not self.profundidad:
+        if self.profundidad == 0:
             self.profundidad = 1
             self.begin(CoolLexer)
         else:
@@ -39,13 +40,15 @@ class comen(Lexer):
     @_(r'\(\*')
     def OUTSIDE(self,t):
         self.profundidad += 1
-
     @_(r'.')
     def COMMEN(self,t):
-        pass
+        if t == '\Z':
+            t.type = "ERROR"
+            t.value = '"EOF in comment"'
+            return t
+        else:
+            pass
 
-    def salida(self, t):
-        return []
 
 class CoolLexer(Lexer):
     tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ERROR3,ERROR4,ERROR5,ERROR6,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
@@ -77,12 +80,30 @@ class CoolLexer(Lexer):
                         for i in ['0','1']
                         for j in range(16)]
     CARACTERES_CONTROL += [bytes.fromhex(hex(127)[-2:]).decode("ascii")]
-    @_(r'"([^"\n\\\x00]|([^\\]?(\\\\)*\\(\n|[^\x00])))*"')
+    @_(r'("(?:\\["]|[^"\\\n]|\\[\n\\a-zA-Z\d\x00\t\b\f\x0c\x1b])*")')
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
-        t.value = t.value.replace('\\\n',r'\n')
+        if '\\\x00' in t.value:
+            t.type = 'ERROR'
+            t.value = '"String contains escaped null character."'
+            return t
+
+        elif '\x00' in t.value:
+            t.type = 'ERROR'
+            t.value = '"String contains null character."'
+            return t
+        p = t.value
+        num_bn = p.count('\\n')
+        num_bb = p.count('\\\\')
+        p = p.replace('\\\n','\n')
+        p = p.replace('\\','') 
+        if len(p)+num_bb-2>1024:
+            t.type = 'ERROR'
+            t.value = '"String constant too long"'
+            return t
         t.value = t.value.replace(r'\\\\',r'\\')
+        t.value = t.value.replace('\\\n','\\n')
         t.value = t.value.replace('\\\t',r'\t')
         t.value = t.value.replace('\\\b',r'\b')
         t.value = t.value.replace('\\\f',r'\f')
@@ -90,10 +111,6 @@ class CoolLexer(Lexer):
         t.value = t.value.replace('\f',r'\f')
         r = re.compile(r'(?<!\\)\\([^nftb"\\])')
         t.value = r.sub(r'\1', t.value)
-        if len(t.value) > 1026:
-            t.type = "ERROR"
-            t.value = '"String constant too long"'
-            return t
         lista = []
         for w in t.value:
             if w in self.CARACTERES_CONTROL:
@@ -116,7 +133,7 @@ class CoolLexer(Lexer):
         t.type = "ERROR"
         t.value = '"String contains null character."'
         return t
-    @_(r'"[^"\n\x00]*\n')
+    @_(r'("(?:\\["]|[^"\\\n]|\\[\n\\a-zA-Z\d\x00])*)\n')
     def ERROR1(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
@@ -124,7 +141,7 @@ class CoolLexer(Lexer):
         t.value = '"Unterminated string constant"'
         return t
 
-    @_(r'"[^"\x00]*\Z')
+    @_(r'\"([^\"]|(\\\\)*\")*')
     def ERROR4(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
@@ -133,7 +150,8 @@ class CoolLexer(Lexer):
         return t
     @_(r'\(\*')
     def COMENT(self,t):
-        self.begin(comen)
+        t = self.begin(comen)
+        return t
 
     @_(r'--.*')
     def LINECOMMENT(self, t):
@@ -211,7 +229,6 @@ class CoolLexer(Lexer):
                 result += f"{str(token.value)}"
             else:
                 result = f'#{token.lineno} {token.type}'
-            
             list_strings.append(result)
         return list_strings
     def tests(self):
@@ -244,7 +261,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "escapedeof.cool"
+    fich = "s33.test.cool"
     f = open(os.path.join(DIR,fich),'r',newline='')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
