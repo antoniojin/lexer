@@ -21,16 +21,11 @@ class comen(Lexer):
     @_(r'\n+')
     def newline(self, t):
         self.lineno += t.value.count('\n')
-    @_(r'\*\)?\Z')
+    @_(r'\*\)\Z')
     def ERROR(self, t):
         self.profundidad -= 1
-        if self.profundidad == 0:
-            self.profundidad = 1
-            self.begin(CoolLexer)
-        else:
-            t.type = "ERROR"
-            t.value = '"EOF in comment"'
-            return t
+        self.profundidad = 1
+        self.begin(CoolLexer)
     @_(r'\*\)')
     def INSIDE(self, t):
         self.profundidad -= 1
@@ -42,7 +37,7 @@ class comen(Lexer):
         self.profundidad += 1
     @_(r'.')
     def COMMEN(self,t):
-        if t == '\Z':
+        if t.value == '\Z':
             t.type = "ERROR"
             t.value = '"EOF in comment"'
             return t
@@ -80,7 +75,7 @@ class CoolLexer(Lexer):
                         for i in ['0','1']
                         for j in range(16)]
     CARACTERES_CONTROL += [bytes.fromhex(hex(127)[-2:]).decode("ascii")]
-    @_(r'("(?:\\["]|[^"\\\n]|\\[\n\\a-zA-Z\d\x00\t\b\f\x0c\x1b])*")')
+    @_(r'("(?:\\["]|[^"\\\n]|\\[\n\\a-zA-Z\d\x00\t\b\f\x0c\x1b\-])*")')
     def STR_CONST(self, t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
@@ -102,7 +97,7 @@ class CoolLexer(Lexer):
             t.type = 'ERROR'
             t.value = '"String constant too long"'
             return t
-        t.value = t.value.replace(r'\\\\',r'\\')
+        #t.value = t.value.replace(r'\\\\',r'\\')
         t.value = t.value.replace('\\\n','\\n')
         t.value = t.value.replace('\\\t',r'\t')
         t.value = t.value.replace('\\\b',r'\b')
@@ -141,7 +136,7 @@ class CoolLexer(Lexer):
         t.value = '"Unterminated string constant"'
         return t
 
-    @_(r'\"([^\"]|(\\\\)*\")*')
+    @_(r'\"([^\"]|\\\")*\Z')
     def ERROR4(self,t):
         self.lineno += t.value.count('\n')
         t.lineno = self.lineno
@@ -230,6 +225,11 @@ class CoolLexer(Lexer):
             else:
                 result = f'#{token.lineno} {token.type}'
             list_strings.append(result)
+        open_p = texto.count('(*') 
+        closed_p = texto.count('*)')
+        if open_p > closed_p:
+            result = f'#{self.lineno} ERROR "EOF in comment"'
+            list_strings.append(result)
         return list_strings
     def tests(self):
         for fich in TESTS:
@@ -261,7 +261,7 @@ if __name__ == '__main__':
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
                 print(f"Revisa el fichero {fich}")
-    fich = "s33.test.cool"
+    fich = "opencomment.cool"
     f = open(os.path.join(DIR,fich),'r',newline='')
     text = f.read()
     print('\n'.join(lexer.salida(text)))
