@@ -1,5 +1,5 @@
 # coding: utf-8
-
+# Realizado por XinZhe Jin y José Carlos Tollar García
 from sly import Lexer
 import os
 import re
@@ -47,7 +47,6 @@ class comen(Lexer):
 
 class CoolLexer(Lexer):
     tokens = { OBJECTID, INT_CONST, BOOL_CONST,TYPEID,NUMBER,ERROR1,ERROR3,ERROR4,ERROR5,ERROR6,ASSIGN, COMENT,LINECOMMENT, ERROR2, DARROW,LE, ELSE, STR_CONST, CASE, CLASS, ESAC, FI, IF, IN, INHERITS,ISVOID,LET,LOOP,NEW,NOT,OF, POOL,THEN,WHILE, ERROR}
-    #ignore = '\t '
     literals = { '=', '+', '-', '*', '/', '(', ')', '<', '.',',','~',';',':','(',')', '@', '{','}'}
     asci = {'','','','','',''}
 
@@ -97,7 +96,6 @@ class CoolLexer(Lexer):
             t.type = 'ERROR'
             t.value = '"String constant too long"'
             return t
-        #t.value = t.value.replace(r'\\\\',r'\\')
         t.value = t.value.replace('\\\n','\\n')
         t.value = t.value.replace('\\\t',r'\t')
         t.value = t.value.replace('\\\b',r'\b')
@@ -241,10 +239,6 @@ class CoolLexer(Lexer):
             texto = f'#name "{fich}"\n' + texto
             f.close(), g.close()
             if texto.strip().split() != resultado.strip().split():
-                #print("Primero:\n")
-                #print(texto[:i])
-                #print("Segundo:\n")
-                #print(resultado[:i])
                 print(f"Revisa el fichero {fich}")
 
 lexer = CoolLexer()
